@@ -1,0 +1,23 @@
+
+{
+ "fruit": {
+   "apple": {},
+    "banana": {},
+    "peach": "ripe" 
+ },
+ "pets": {
+   "dog": {
+     "little": false,
+     "big": true,
+     "hats": {}
+   },
+   "cat": {
+     "calico": {},
+     "tabby": {
+       "orange": {},
+       "tiger": {}
+     }
+    }
+  }
+}
+

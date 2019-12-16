@@ -1,0 +1,23 @@
+{
+  "name": "lootbag",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "13.2.0"
+  },
+  "description": "Random stuff",
+  "main": "server/server.js",
+  "dependencies": {
+    "bluebird": "^3.7.2",
+    "commander": "^4.0.1",
+    "lodash": "^4.17.15"
+  },
+  "devDependencies": {},
+  "scripts": { 
+    "start": "./jsonpaths",
+    "example1": "./jsonpaths --json test1.json",
+    "emptyobj": "./jsonpaths -j emptyobj.json",
+    "includeempty": "./jsonpaths --empty --json empty.json",
+    "test": "[ \"$(./jsonpaths -j test1.json)\" == \"$(cat test1paths.json)\" ] && echo Pass. || echo Fail." 
+  }
+}

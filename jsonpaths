@@ -1,0 +1,111 @@
+#!/usr/bin/env node
+
+'use strict';
+const _ = require('lodash');
+const fs = require('fs');
+const program = require('commander');
+const P = require('bluebird');
+
+fs.readFileP = P.promisify(fs.readFile); // promise version of readFile & writeFile.
+fs.writeFileP = P.promisify(fs.writeFile);
+
+// The commander package is not posix compliant:
+//   1) it writes the usage message to stdout - should write to stderr
+//   2) It exits with 0 on usage message.
+// Cringe-worthy hacks are in place to make commander posix compliant.
+
+function parseCommander() {
+  // TODO: dump 'commander'.
+  // major hack!
+  // during parse command - intercept commander's use of stdout and
+  // the system exit.
+  const stdout_fd_save = process.stdout.fd;
+  process.stdout.fd = process.stderr.fd;
+  const exit_save = process.exit;
+  process.exit = () => exit_save(1);
+  return P.try(() => {
+    const Description = [
+      'Takes a JSON object as input and outputs the path to every terminal value.',
+      'By default JSON is read from stdin. Use -j to read the JSON from named file.',
+      'Output is written to stdout, or use -o to name the output file.'
+    ];
+
+    program
+      .description(Description.join('\n'))
+      .option('-j, --json <jsonfile>', 'Read JSON object from ths file (def: stdin)')
+      .option('-o, --out <resultfile>', 'Write paths to "resultfile" (def: stdout)')
+      .option('-e, --empty', 'Include fields with empty object values as "{}" (def: ignore field)')
+
+    program.parse(process.argv);
+  }).then(() => {
+    // Hack restore...
+    process.stdout.fd = stdout_fd_save;
+    process.exit = exit_save;
+  });
+}
+
+function obj2paths(obj) {
+  const opaths = {};
+  const walkpaths = (o, prefix = '') => {
+    prefix = prefix ? prefix + '.' : '';
+    let fields = 0;
+    _.forEach(o, (value, key) => {
+      fields++;
+      if (_.isObject(value)) {
+        if (walkpaths(value, prefix + key) === 0 && program.empty) {
+          opaths[prefix + key] = '"{}"';
+        }
+      } else {
+        opaths[prefix + key] = value;
+      }
+    });
+    return fields;
+  }
+  if (!_.isObject(obj)) {
+    throw new Error('Input json is not an object');
+  }
+  walkpaths(obj)
+  return opaths;
+}
+
+function readJsonFromStdin() {
+  process.stdin.setEncoding('utf8');
+  return new P((resolve, reject) => {
+    let jsonFile = '';
+    process.stdin.on('data', data => jsonFile += data);
+    process.stdin.on('end', () => resolve(jsonFile))
+    process.stdin.on('error', () => reject('Error reading from stdin'))
+  });
+}
+
+function readJson(jsonFile) {
+  return jsonFile ? fs.readFileP(jsonFile, 'utf-8') : readJsonFromStdin();
+}
+
+function writePathsToStdout(pathsJson) {
+  return new P((resolve, reject) => {
+    process.stdout.write(pathsJson, (err, ok) => {
+      return err ? reject(err) : resolve(ok)
+    });
+  });
+}
+
+function writePaths(outFile, pathsObj) {
+  const pathsJson = JSON.stringify(pathsObj, null, 2) + '\n';
+  return outFile ? fs.writeFileP(outFile, pathsJson) : writePathsToStdout(pathsJson);
+}
+
+const main = () => {
+  parseCommander()
+    .then(() => readJson(program.json))
+    .then(jsonText => JSON.parse(jsonText.trim()))
+    .then(jsonObj => obj2paths(jsonObj))
+    .then(pathsObj => writePaths(program.out, pathsObj))
+    .then(() => process.exit(0))
+    .catch(err => {
+      console.error(err.message || err); // run-time or request error.
+      process.exit(3);
+    });
+};
+
+main();
