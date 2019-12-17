@@ -60,11 +60,11 @@ function obj2paths(obj) {
       }
     });
     return fields;
-  }
+  };
   if (!_.isObject(obj)) {
     throw new Error('Input json is not an object');
   }
-  walkpaths(obj)
+  walkpaths(obj);
   return opaths;
 }
 
@@ -73,8 +73,8 @@ function readJsonFromStdin() {
   return new P((resolve, reject) => {
     let jsonFile = '';
     process.stdin.on('data', data => jsonFile += data);
-    process.stdin.on('end', () => resolve(jsonFile))
-    process.stdin.on('error', () => reject('Error reading from stdin'))
+    process.stdin.on('end', () => resolve(jsonFile));
+    process.stdin.on('error', () => reject('Error reading from stdin'));
   });
 }
 
@@ -85,7 +85,7 @@ function readJson(jsonFile) {
 function writePathsToStdout(pathsJson) {
   return new P((resolve, reject) => {
     process.stdout.write(pathsJson, (err, ok) => {
-      return err ? reject(err) : resolve(ok)
+      return err ? reject(err) : resolve(ok);
     });
   });
 }
