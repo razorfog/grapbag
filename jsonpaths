@@ -34,7 +34,7 @@ function parseCommander() {
       .description(Description.join('\n'))
       .option('-j, --json <jsonfile>', 'Read JSON object from ths file (def: stdin)')
       .option('-o, --out <resultfile>', 'Write paths to "resultfile" (def: stdout)')
-      .option('-e, --empty', 'Include fields with empty object values as "{}" (def: ignore field)')
+      .option('-e, --empty', 'Include fields with empty object values as "{}" (def: ignore field)');
 
     program.parse(process.argv);
   }).then(() => {
@@ -95,8 +95,14 @@ function writePaths(outFile, pathsObj) {
   return outFile ? fs.writeFileP(outFile, pathsJson) : writePathsToStdout(pathsJson);
 }
 
+function checkForExtraArgs() {
+  if (program.args && program.args.length > 0) {
+    throw new Error(`Invalid command line arguments: ${program.args.join(', ')}`);
+  }
+}
 const main = () => {
   parseCommander()
+    .then(() => checkForExtraArgs())
     .then(() => readJson(program.json))
     .then(jsonText => JSON.parse(jsonText.trim()))
     .then(jsonObj => obj2paths(jsonObj))
